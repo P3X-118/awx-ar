@@ -1,0 +1,24 @@
+---
+- name: Perform AWX installation tasks
+  when: awx_enabled | bool
+  tags:
+    - setup-all
+    - setup-awx
+    - install-all
+    - install-awx
+  block:
+    - name: Validate AWX configuration
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+    - name: Install AWX Redis
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install_redis.yml"
+    - name: Install AWX
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
+
+- name: Perform AWX uninstallation tasks
+  when: not awx_enabled | bool
+  tags:
+    - setup-all
+    - setup-awx
+  block:
+    - name: Uninstall AWX
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"

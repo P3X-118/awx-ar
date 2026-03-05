@@ -1,0 +1,74 @@
+---
+- name: Check existence of AWX systemd service
+  ansible.builtin.stat:
+    path: "{{ sysd_docker_service_path }}/{{ awx_identifier }}.service"
+  register: awx_service_stat
+
+- name: Check existence of AWX Redis systemd service
+  ansible.builtin.stat:
+    path: "{{ sysd_docker_service_path }}/{{ awx_redis_identifier }}.service"
+  register: awx_redis_service_stat
+
+- name: Check existence of AWX Receptor systemd service
+  ansible.builtin.stat:
+    path: "{{ sysd_docker_service_path }}/{{ awx_receptor_identifier }}.service"
+  register: awx_receptor_service_stat
+
+- name: Uninstall AWX systemd services and files
+  when: awx_service_stat.stat.exists | bool
+  block:
+    - name: Ensure AWX systemd service is stopped
+      ansible.builtin.service:
+        name: "{{ awx_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+
+    - name: Ensure AWX Receptor systemd service is stopped
+      when: awx_receptor_service_stat.stat.exists | bool
+      ansible.builtin.service:
+        name: "{{ awx_receptor_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+
+    - name: Ensure AWX systemd service does not exist
+      ansible.builtin.file:
+        path: "{{ sysd_docker_service_path }}/{{ awx_identifier }}.service"
+        state: absent
+
+    - name: Ensure AWX Receptor systemd service does not exist
+      when: awx_receptor_service_stat.stat.exists | bool
+      ansible.builtin.file:
+        path: "{{ sysd_docker_service_path }}/{{ awx_receptor_identifier }}.service"
+        state: absent
+
+    - name: Ensure AWX container network does not exist
+      community.docker.docker_network:
+        name: "{{ awx_container_network }}"
+        state: absent
+
+    - name: Ensure AWX path does not exist
+      ansible.builtin.file:
+        path: "{{ awx_base_path }}"
+        state: absent
+
+- name: Uninstall AWX Redis systemd service
+  when: awx_redis_service_stat.stat.exists | bool
+  block:
+    - name: Ensure AWX Redis systemd service is stopped
+      ansible.builtin.service:
+        name: "{{ awx_redis_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+
+    - name: Ensure AWX Redis systemd service does not exist
+      ansible.builtin.file:
+        path: "{{ sysd_docker_service_path }}/{{ awx_redis_identifier }}.service"
+        state: absent
+
+    - name: Ensure AWX Redis container network does not exist
+      community.docker.docker_network:
+        name: "{{ awx_redis_container_network }}"
+        state: absent

@@ -1,0 +1,37 @@
+[Unit]
+Description=AWX Receptor ({{ awx_receptor_identifier }})
+Requires={{ sysd_docker_service }}
+After={{ sysd_docker_service }}
+Wants={{ awx_identifier }}.service
+DefaultDependencies=no
+
+[Service]
+Type=simple
+Environment="HOME={{ sysd_docker_unit_home_path }}"
+Environment="AWX_SKIP_METRICS=true"
+ExecStartPre=-{{ sysd_docker_host_sh }} -c '{{ sysd_docker_host_command }} stop -t {{ sysd_docker_stop_grace }} {{ awx_receptor_identifier }} 2>/dev/null || true'
+ExecStartPre=-{{ sysd_docker_host_sh }} -c '{{ sysd_docker_host_command }} rm {{ awx_receptor_identifier }} 2>/dev/null || true'
+
+ExecStartPre={{ sysd_docker_host_command }} create \
+      --rm \
+      --name={{ awx_receptor_identifier }} \
+      --log-driver=none \
+      --user={{ awx_uid }}:{{ awx_gid }} \
+      --cap-drop=ALL \
+      --network={{ awx_container_network }} \
+      --env-file={{ awx_base_path }}/env \
+      --volume={{ awx_projects_storage_path }}:/var/lib/awx/projects:rw \
+      {{ awx_receptor_container_image }} \
+      receptor --config /etc/receptor/receptor.yml worker --extra-vars @/tmp/awx_runtests.yaml
+
+ExecStart={{ sysd_docker_host_command }} start --attach {{ awx_receptor_identifier }}
+
+ExecStop=-{{ sysd_docker_host_sh }} -c '{{ sysd_docker_host_command }} stop -t {{ sysd_docker_stop_grace }} {{ awx_receptor_identifier }} 2>/dev/null || true'
+ExecStop=-{{ sysd_docker_host_sh }} -c '{{ sysd_docker_host_command }} rm {{ awx_receptor_identifier }} 2>/dev/null || true'
+
+Restart=always
+RestartSec=30
+SyslogIdentifier={{ awx_receptor_identifier }}
+
+[Install]
+WantedBy=multi-user.target

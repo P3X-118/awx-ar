@@ -1,0 +1,137 @@
+---
+awx_enabled: true
+
+awx_identifier: awx
+awx_base_path: "/{{ awx_identifier }}"
+
+awx_version: "24.6.1"
+
+awx_uid: "1000"
+awx_gid: "1000"
+
+awx_scheme: https
+
+awx_hostname: ""
+
+awx_path_prefix: /
+
+awx_container_image: "{{ awx_container_image_registry_prefix }}awx/{{ awx_container_image_app }}:{{ awx_container_image_tag }}"
+awx_container_image_app: awx
+awx_container_image_tag: "{{ awx_version }}"
+awx_container_image_registry_prefix: "{{ awx_container_image_registry_prefix_upstream }}"
+awx_container_image_registry_prefix_upstream: "{{ awx_container_image_registry_prefix_upstream_default }}"
+awx_container_image_registry_prefix_upstream_default: docker.io/
+awx_container_image_force_pull: "{{ awx_container_image.endswith(':latest') }}"
+
+awx_container_network: "{{ awx_identifier }}"
+
+awx_container_network_deletion_enabled: true
+
+awx_container_http_host_bind_port: ""
+
+awx_container_http_port: 8052
+
+awx_container_additional_networks: "{{ awx_container_additional_networks_auto + awx_container_additional_networks_custom }}"
+awx_container_additional_networks_auto: []
+awx_container_additional_networks_custom: []
+
+awx_container_additional_volumes: "{{ awx_container_additional_volumes_auto + awx_container_additional_volumes_custom }}"
+awx_container_additional_volumes_auto: []
+awx_container_additional_volumes_custom: []
+
+awx_container_labels_traefik_enabled: false
+awx_container_labels_traefik_docker_network: "{{ awx_container_network }}"
+awx_container_labels_traefik_hostname: "{{ awx_hostname }}"
+awx_container_labels_traefik_path_prefix: "{{ awx_path_prefix }}"
+awx_container_labels_traefik_rule: "Host(`{{ awx_container_labels_traefik_hostname }}`){% if awx_container_labels_traefik_path_prefix != '/' %} && PathPrefix(`{{ awx_container_labels_traefik_path_prefix }}`){% endif %}"
+awx_container_labels_traefik_priority: 0
+awx_container_labels_traefik_entrypoints: web-secure
+awx_container_labels_traefik_tls: "{{ awx_container_labels_traefik_entrypoints != 'web' }}"
+awx_container_labels_traefik_tls_certResolver: default
+awx_container_labels_traefik_additional_request_headers: "{{ awx_container_labels_traefik_additional_request_headers_auto | combine(awx_container_labels_traefik_additional_request_headers_custom) }}"
+awx_container_labels_traefik_additional_request_headers_auto: {}
+awx_container_labels_traefik_additional_request_headers_custom: {}
+awx_container_labels_traefik_additional_response_headers: "{{ awx_container_labels_traefik_additional_response_headers_auto | combine(awx_container_labels_traefik_additional_response_headers_custom) }}"
+awx_container_labels_traefik_additional_response_headers_auto: |
+  {{
+    {}
+    | combine ({'X-XSS-Protection': awx_http_header_xss_protection} if awx_http_header_xss_protection else {})
+    | combine ({'X-Content-Type-Options': awx_http_header_content_type_options} if awx_http_header_content_type_options else {})
+    | combine ({'X-Frame-Options': awx_http_header_x_frame_options} if awx_http_header_x_frame_options else {})
+    | combine ({'Content-Security-Policy': awx_http_header_content_security_policy} if awx_http_header_content_security_policy else {})
+    | combine ({'Strict-Transport-Security': awx_http_header_strict_transport_security} if awx_http_header_strict_transport_security and awx_container_labels_traefik_tls else {})
+  }}
+awx_container_labels_traefik_additional_response_headers_custom: {}
+
+awx_container_labels_additional_labels: "{{ awx_container_labels_additional_labels_auto + awx_container_labels_additional_labels_custom }}"
+awx_container_labels_additional_labels_auto: []
+awx_container_labels_additional_labels_custom: []
+
+awx_container_extra_arguments: "{{ awx_container_extra_arguments_auto + awx_container_extra_arguments_custom }}"
+awx_container_extra_arguments_auto: []
+awx_container_extra_arguments_custom: []
+
+awx_http_header_xss_protection: "1; mode=block"
+awx_http_header_content_type_options: nosniff
+awx_http_header_x_frame_options: DENY
+awx_http_header_content_security_policy: "frame-ancestors 'self'"
+awx_http_header_strict_transport_security: "max-age=31536000; includeSubDomains"
+
+awx_systemd_required_services_list: "{{ awx_systemd_required_services_list_default + awx_systemd_required_services_list_auto + awx_systemd_required_services_list_custom }}"
+awx_systemd_required_services_list_default: "{{ [sysd_docker_service] if sysd_docker_service else [] }}"
+awx_systemd_required_services_list_auto: []
+awx_systemd_required_services_list_custom: []
+
+awx_systemd_wanted_services_list: "{{ awx_systemd_wanted_services_list_default + awx_systemd_wanted_services_list_auto + awx_systemd_wanted_services_list_custom }}"
+awx_systemd_wanted_services_list_default: []
+awx_systemd_wanted_services_list_auto: []
+awx_systemd_wanted_services_list_custom: []
+
+awx_environment_variables_tz: UTC
+
+awx_environment_variables_additional_variables: ""
+
+awx_admin_user: admin
+awx_admin_password: ""
+awx_secret_key: ""
+awx_broadcast_websocket_secret: ""
+
+awx_secret_key_file: "{{ awx_base_path }}/secret_key"
+awx_broadcast_websocket_secret_file: "{{ awx_base_path }}/broadcast_websocket_secret"
+
+awx_postgres_host: "{{ postgres_identifier }}"
+awx_postgres_port: "{{ postgres_connection_port }}"
+awx_postgres_username: "awx"
+awx_postgres_password: ""
+awx_postgres_database: "awx"
+
+awx_redis_host: "{{ awx_identifier }}-redis"
+awx_redis_port: 6379
+awx_redis_password: ""
+
+awx_restart_necessary: false
+
+awx_projects_storage_kind: volume
+awx_projects_storage_path: "{{ awx_base_path }}/projects"
+
+awx_ee_images:
+  - name: "awx-ee"
+    image: "docker.io/ansible/awx-ee:latest"
+
+awx_ receptor_enabled: true
+awx_receptor_identifier: "{{ awx_identifier }}-receptor"
+awx_receptor_container_image: "{{ awx_container_image }}"
+awx_receptor_container_network: "{{ awx_identifier }}-receptor"
+awx_receptor_service_path: "{{ sysd_docker_service_path }}"
+
+awx_redis_enabled: true
+awx_redis_identifier: "{{ awx_identifier }}-redis"
+awx_redis_container_image: "{{ awx_container_image_registry_prefix }}redis:{{ awx_redis_version }}"
+awx_redis_version: "8.4.0"
+awx_redis_container_network: "{{ awx_identifier }}-redis"
+
+awx_postgres_identifier: "{{ postgres_identifier | default('postgres') }}"
+awx_postgres_managed_databases:
+  - name: "{{ awx_postgres_database }}"
+    username: "{{ awx_postgres_username }}"
+    password: "{{ awx_postgres_password }}"

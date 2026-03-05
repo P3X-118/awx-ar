@@ -1,0 +1,155 @@
+---
+- name: Configure AWX postgres database
+  ansible.builtin.set_fact:
+    postgres_managed_databases_additional: "{{ postgres_managed_databases_additional | default([]) + awx_postgres_managed_databases }}"
+
+- name: Ensure AWX paths exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+  with_items:
+    - "{{ awx_base_path }}"
+    - "{{ awx_projects_storage_path }}"
+
+- name: Ensure AWX secrets are generated
+  block:
+    - name: Check if AWX secret key exists
+      ansible.builtin.stat:
+        path: "{{ awx_secret_key_file }}"
+      register: awx_secret_key_stat
+
+    - name: Generate AWX secret key
+      when: not awx_secret_key_stat.stat.exists
+      ansible.builtin.set_fact:
+        awx_generated_secret_key: "{{ 99999999999999999999 | random | to_uuid }}"
+
+    - name: Read existing AWX secret key
+      when: awx_secret_key_stat.stat.exists
+      ansible.builtin.set_fact:
+        awx_generated_secret_key: "{{ lookup('file', awx_secret_key_file) }}"
+
+    - name: Write AWX secret key to file
+      when: not awx_secret_key_stat.stat.exists
+      ansible.builtin.copy:
+        dest: "{{ awx_secret_key_file }}"
+        content: "{{ awx_generated_secret_key }}"
+        mode: "0640"
+        owner: "{{ awx_uid }}"
+        group: "{{ awx_gid }}"
+
+    - name: Check if AWX broadcast websocket secret exists
+      ansible.builtin.stat:
+        path: "{{ awx_broadcast_websocket_secret_file }}"
+      register: awx_broadcast_secret_stat
+
+    - name: Generate AWX broadcast websocket secret
+      when: not awx_broadcast_secret_stat.stat.exists
+      ansible.builtin.set_fact:
+        awx_generated_broadcast_websocket_secret: "{{ 99999999999999999999 | random | to_uuid }}"
+
+    - name: Read existing AWX broadcast websocket secret
+      when: awx_broadcast_secret_stat.stat.exists
+      ansible.builtin.set_fact:
+        awx_generated_broadcast_websocket_secret: "{{ lookup('file', awx_broadcast_websocket_secret_file) }}"
+
+    - name: Write AWX broadcast websocket secret to file
+      when: not awx_broadcast_secret_stat.stat.exists
+      ansible.builtin.copy:
+        dest: "{{ awx_broadcast_websocket_secret_file }}"
+        content: "{{ awx_generated_broadcast_websocket_secret }}"
+        mode: "0640"
+        owner: "{{ awx_uid }}"
+        group: "{{ awx_gid }}"
+
+- name: Set AWX secrets facts
+  ansible.builtin.set_fact:
+    awx_effective_secret_key: "{{ awx_secret_key if awx_secret_key else awx_generated_secret_key }}"
+    awx_effective_broadcast_websocket_secret: "{{ awx_broadcast_websocket_secret if awx_broadcast_websocket_secret else awx_generated_broadcast_websocket_secret }}"
+
+- name: Ensure AWX environment file is present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/env.j2"
+    dest: "{{ awx_base_path }}/env"
+    mode: "0640"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+  register: awx_support_files_result
+
+- name: Ensure AWX container image is pulled via community.docker.docker_image
+  when: sysd_docker_image_pull_method == 'ansible-module'
+  community.docker.docker_image:
+    name: "{{ awx_container_image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: "{{ awx_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
+    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else awx_container_image_force_pull }}"
+  register: awx_container_image_pull_result
+  retries: "{{ container_retry_delay }}"
+  delay: "{{ container_retry }}"
+  until: awx_container_image_pull_result is not failed
+
+- name: Ensure AWX container image is pulled via ansible.builtin.command
+  when: sysd_docker_image_pull_method == 'command'
+  ansible.builtin.command:
+    cmd: "{{ sysd_docker_host_command }} pull {{ awx_container_image }}"
+  register: awx_container_image_pull_result
+  retries: "{{ container_retry_delay }}"
+  delay: "{{ container_retry }}"
+  until: awx_container_image_pull_result is not failed
+  changed_when: "'Downloaded newer image' in awx_container_image_pull_result.stdout"
+
+- name: Ensure AWX container network is created via community.docker.docker_network
+  when: sysd_docker_net_creation_method == 'ansible-module'
+  community.docker.docker_network:
+    enable_ipv6: "{{ sysd_docker_ipv6_enabled }}"
+    name: "{{ awx_container_network }}"
+    driver: bridge
+    driver_options: "{{ sysd_docker_net_driver_opts }}"
+  register: awx_network_creation_result
+
+- name: Ensure AWX container network is created via ansible.builtin.command
+  when: sysd_docker_net_creation_method == 'command'
+  ansible.builtin.command:
+    cmd: >-
+      {{ sysd_docker_host_command }} network create
+      {% if sysd_docker_ipv6_enabled %}--ipv6{% endif %}
+      {{ sysd_docker_net_driver_opts_string }}
+      {{ awx_container_network }}
+  register: awx_network_creation_result
+  changed_when: awx_network_creation_result.rc == 0
+  failed_when: awx_network_creation_result.rc != 0 and 'already exists' not in awx_network_creation_result.stderr
+
+- name: Ensure AWX projects volume exists
+  ansible.builtin.file:
+    path: "{{ awx_projects_storage_path }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+
+- name: Ensure AWX systemd service is present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/systemd/awx.service.j2"
+    dest: "{{ sysd_docker_service_path }}/{{ awx_identifier }}.service"
+    mode: "0644"
+  register: awx_systemd_service_result
+
+- name: Ensure AWX receptor systemd service is present
+  when: awx_receptor_enabled | bool
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/systemd/awx-receptor.service.j2"
+    dest: "{{ sysd_docker_service_path }}/{{ awx_receptor_identifier }}.service"
+    mode: "0644"
+  register: awx_receptor_systemd_service_result
+
+- name: Determine whether AWX needs a restart
+  ansible.builtin.set_fact:
+    awx_restart_necessary: >-
+      {{
+        awx_support_files_result.changed | default(false)
+        or awx_systemd_service_result.changed | default(false)
+        or awx_receptor_systemd_service_result.changed | default(false)
+        or awx_container_image_pull_result.changed | default(false)
+      }}

@@ -1,0 +1,34 @@
+---
+- name: Ensure AWX Redis path exists
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+  with_items:
+    - "{{ awx_base_path }}"
+
+- name: Ensure AWX Redis container image is pulled
+  community.docker.docker_image:
+    name: "{{ awx_redis_container_image }}"
+    source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
+    force_source: false
+    force: false
+  register: awx_redis_container_image_pull_result
+  retries: "{{ container_retry_delay }}"
+  delay: "{{ container_retry }}"
+  until: awx_redis_container_image_pull_result is not failed
+
+- name: Ensure AWX Redis container network is created
+  community.docker.docker_network:
+    name: "{{ awx_redis_container_network }}"
+    driver: bridge
+  register: awx_redis_network_creation_result
+
+- name: Ensure AWX Redis systemd service is present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/systemd/awx-redis.service.j2"
+    dest: "{{ sysd_docker_service_path }}/{{ awx_redis_identifier }}.service"
+    mode: "0644"
+  register: awx_redis_systemd_service_result

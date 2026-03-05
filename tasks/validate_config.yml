@@ -1,0 +1,21 @@
+---
+- name: Fail if required AWX settings not defined
+  ansible.builtin.fail:
+    msg: >-
+      You need to define a required configuration setting (`{{ item }}`).
+  when: "lookup('vars', item, default='') | string | length == 0"
+  with_items:
+    - awx_uid
+    - awx_gid
+    - awx_container_network
+
+- name: Run if Traefik is enabled
+  when: awx_container_labels_traefik_enabled | bool
+  block:
+    - name: Fail if Traefik settings required for AWX are not defined
+      ansible.builtin.fail:
+        msg: >-
+          You need to define a required configuration setting (`{{ item }}`).
+      when: "lookup('vars', item, default='') | string | length == 0"
+      with_items:
+        - awx_container_labels_traefik_hostname
