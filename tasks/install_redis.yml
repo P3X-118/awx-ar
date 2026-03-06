@@ -13,8 +13,6 @@
   community.docker.docker_image:
     name: "{{ awx_redis_container_image }}"
     source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
-    force_source: false
-    force: false
   register: awx_redis_container_image_pull_result
   retries: "{{ container_retry_delay }}"
   delay: "{{ container_retry }}"

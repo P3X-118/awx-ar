@@ -84,7 +84,6 @@
     name: "{{ awx_container_image }}"
     source: "{{ 'pull' if ansible_version.major > 2 or ansible_version.minor > 7 else omit }}"
     force_source: "{{ awx_container_image_force_pull if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
-    force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else awx_container_image_force_pull }}"
   register: awx_container_image_pull_result
   retries: "{{ container_retry_delay }}"
   delay: "{{ container_retry }}"
