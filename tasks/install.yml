@@ -15,6 +15,7 @@
     - "{{ awx_projects_storage_path }}"
 
 - name: Ensure AWX secrets are generated
+  when: awx_secret_key | default('') | length == 0
   block:
     - name: Check if AWX secret key exists
       ansible.builtin.stat:
@@ -41,22 +42,23 @@
         group: "{{ awx_gid }}"
 
     - name: Check if AWX broadcast websocket secret exists
+      when: awx_broadcast_websocket_secret | default('') | length == 0
       ansible.builtin.stat:
         path: "{{ awx_broadcast_websocket_secret_file }}"
       register: awx_broadcast_secret_stat
 
     - name: Generate AWX broadcast websocket secret
-      when: not awx_broadcast_secret_stat.stat.exists
+      when: awx_broadcast_websocket_secret | default('') | length == 0 and not awx_broadcast_secret_stat.stat.exists
       ansible.builtin.set_fact:
         awx_generated_broadcast_websocket_secret: "{{ 99999999999999999999 | random | to_uuid }}"
 
     - name: Read existing AWX broadcast websocket secret
-      when: awx_broadcast_secret_stat.stat.exists
+      when: awx_broadcast_websocket_secret | default('') | length == 0 and awx_broadcast_secret_stat.stat.exists
       ansible.builtin.set_fact:
         awx_generated_broadcast_websocket_secret: "{{ lookup('file', awx_broadcast_websocket_secret_file) }}"
 
     - name: Write AWX broadcast websocket secret to file
-      when: not awx_broadcast_secret_stat.stat.exists
+      when: awx_broadcast_websocket_secret | default('') | length == 0 and not awx_broadcast_secret_stat.stat.exists
       ansible.builtin.copy:
         dest: "{{ awx_broadcast_websocket_secret_file }}"
         content: "{{ awx_generated_broadcast_websocket_secret }}"
@@ -66,8 +68,8 @@
 
 - name: Set AWX secrets facts
   ansible.builtin.set_fact:
-    awx_effective_secret_key: "{{ awx_secret_key if awx_secret_key else awx_generated_secret_key }}"
-    awx_effective_broadcast_websocket_secret: "{{ awx_broadcast_websocket_secret if awx_broadcast_websocket_secret else awx_generated_broadcast_websocket_secret }}"
+    awx_effective_secret_key: "{{ awx_secret_key if awx_secret_key | default('') | length > 0 else (awx_generated_secret_key | default(omit)) }}"
+    awx_effective_broadcast_websocket_secret: "{{ awx_broadcast_websocket_secret if awx_broadcast_websocket_secret | default('') | length > 0 else (awx_generated_broadcast_websocket_secret | default(omit)) }}"
 
 - name: Ensure AWX environment file is present
   ansible.builtin.template:
