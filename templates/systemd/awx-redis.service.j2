@@ -16,6 +16,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --log-driver=none \
       --user=redis:redis \
       --cap-drop=ALL \
+      --security-opt=no-new-privileges:true \
       --network={{ awx_redis_container_network }} \
       {{ awx_redis_container_image }}
 

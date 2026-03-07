@@ -21,6 +21,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --log-driver=none \
       --user={{ awx_uid }}:{{ awx_gid }} \
       --cap-drop=ALL \
+      --security-opt=no-new-privileges:true \
       --network={{ awx_container_network }} \
       {% if awx_container_http_host_bind_port %}
       -p {{ awx_container_http_host_bind_port }}:{{ awx_container_http_port }} \

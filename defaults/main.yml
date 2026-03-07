@@ -15,8 +15,7 @@ awx_hostname: ""
 
 awx_path_prefix: /
 
-awx_container_image: "{{ awx_container_image_registry_prefix }}awx/{{ awx_container_image_app }}:{{ awx_container_image_tag }}"
-awx_container_image_app: awx
+awx_container_image: "{{ awx_container_image_registry_prefix }}legitservices/awx:{{ awx_container_image_tag }}"
 awx_container_image_tag: "{{ awx_version }}"
 awx_container_image_registry_prefix: "{{ awx_container_image_registry_prefix_upstream }}"
 awx_container_image_registry_prefix_upstream: "{{ awx_container_image_registry_prefix_upstream_default }}"

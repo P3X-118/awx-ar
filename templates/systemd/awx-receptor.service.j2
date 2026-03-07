@@ -18,6 +18,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --log-driver=none \
       --user={{ awx_uid }}:{{ awx_gid }} \
       --cap-drop=ALL \
+      --security-opt=no-new-privileges:true \
       --network={{ awx_container_network }} \
       --env-file={{ awx_base_path }}/env \
       --volume={{ awx_projects_storage_path }}:/var/lib/awx/projects:rw \
