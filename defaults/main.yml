@@ -117,7 +117,7 @@ awx_ee_images:
   - name: "awx-ee"
     image: "docker.io/ansible/awx-ee:latest"
 
-awx_ receptor_enabled: true
+awx_receptor_enabled: true
 awx_receptor_identifier: "{{ awx_identifier }}-receptor"
 awx_receptor_container_image: "{{ awx_container_image }}"
 awx_receptor_container_network: "{{ awx_identifier }}-receptor"
