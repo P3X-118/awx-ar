@@ -35,7 +35,8 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       {% for arg in awx_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
-      {{ awx_container_image }}
+      {{ awx_container_image }} \
+      /usr/bin/launch_awx_web.sh
 
 {% for network in awx_container_additional_networks %}
 ExecStartPre={{ sysd_docker_host_command }} network connect {{ network }} {{ awx_identifier }}

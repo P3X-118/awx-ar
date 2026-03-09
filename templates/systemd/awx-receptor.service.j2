@@ -24,7 +24,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --volume={{ awx_projects_storage_path }}:/var/lib/awx/projects:rw \
       --volume={{ awx_data_path }}:/var/lib/awx:rw \
       {{ awx_receptor_container_image }} \
-      receptor --config /etc/receptor/receptor.yml worker --extra-vars @/tmp/awx_runtests.yaml
+      /usr/bin/launch_awx_task.sh receptor --config /etc/receptor/receptor.yml worker
 
 ExecStart={{ sysd_docker_host_command }} start --attach {{ awx_receptor_identifier }}
 
