@@ -17,7 +17,7 @@
 - name: Generate AWX secret key
   when: awx_secret_key | default('') | length == 0
   ansible.builtin.set_fact:
-    awx_generated_secret_key: "{{ 99999999999999999999 | random | to_uuid }}"
+    awx_generated_secret_key: "{{ lookup('community.general.random_string', length=50, special=false) }}"
 
 - name: Write AWX secret key to file
   when: awx_secret_key | default('') | length == 0
@@ -31,7 +31,7 @@
 - name: Generate AWX broadcast websocket secret
   when: awx_broadcast_websocket_secret | default('') | length == 0
   ansible.builtin.set_fact:
-    awx_generated_broadcast_websocket_secret: "{{ 999999999999999 | random | to_uuid }}"
+    awx_generated_broadcast_websocket_secret: "{{ lookup('community.general.random_string', length=50, special=false) }}"
 
 - name: Write AWX broadcast websocket secret to file
   when: awx_broadcast_websocket_secret | default('') | length == 0
