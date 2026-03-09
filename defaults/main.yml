@@ -113,6 +113,8 @@ awx_restart_necessary: false
 awx_projects_storage_kind: volume
 awx_projects_storage_path: "{{ awx_base_path }}/projects"
 
+awx_data_path: "{{ awx_base_path }}/data"
+
 awx_ee_images:
   - name: "awx-ee"
     image: "docker.io/ansible/awx-ee:latest"

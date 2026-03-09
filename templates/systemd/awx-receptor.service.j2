@@ -22,6 +22,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --network={{ awx_container_network }} \
       --env-file={{ awx_base_path }}/env \
       --volume={{ awx_projects_storage_path }}:/var/lib/awx/projects:rw \
+      --volume={{ awx_data_path }}:/var/lib/awx:rw \
       {{ awx_receptor_container_image }} \
       receptor --config /etc/receptor/receptor.yml worker --extra-vars @/tmp/awx_runtests.yaml
 

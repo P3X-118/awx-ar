@@ -106,6 +106,14 @@
     owner: "{{ awx_uid }}"
     group: "{{ awx_gid }}"
 
+- name: Ensure AWX data volume exists
+  ansible.builtin.file:
+    path: "{{ awx_data_path }}"
+    state: directory
+    mode: "0750"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+
 - name: Ensure AWX systemd service is present
   ansible.builtin.template:
     src: "{{ role_path }}/templates/systemd/awx.service.j2"
