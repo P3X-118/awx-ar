@@ -114,6 +114,43 @@
     owner: "{{ awx_uid }}"
     group: "{{ awx_gid }}"
 
+- name: Ensure AWX config directories exist
+  ansible.builtin.file:
+    path: "{{ awx_base_path }}/tower"
+    state: directory
+    mode: "0750"
+    owner: "1000"
+    group: "1000"
+
+- name: Ensure AWX supervisor directory exists
+  ansible.builtin.file:
+    path: "{{ awx_base_path }}/supervisor"
+    state: directory
+    mode: "0750"
+    owner: "1000"
+    group: "1000"
+
+- name: Ensure AWX settings file is present
+  ansible.builtin.copy:
+    dest: "{{ awx_base_path }}/tower/settings.py"
+    content: |
+      # AWX Settings - configured via environment variables
+      # Database settings
+      import os
+      DATABASES = {
+          'default': {
+              'ENGINE': 'django.db.backends.postgresql',
+              'NAME': os.environ.get('DATABASE_NAME', 'awx'),
+              'USER': os.environ.get('DATABASE_USER', 'awx'),
+              'PASSWORD': os.environ.get('DATABASE_PASSWORD', ''),
+              'HOST': os.environ.get('DATABASE_HOST', 'localhost'),
+              'PORT': os.environ.get('DATABASE_PORT', '5432'),
+          }
+      }
+    mode: "0644"
+    owner: "1000"
+    group: "1000"
+
 - name: Ensure AWX systemd service is present
   ansible.builtin.template:
     src: "{{ role_path }}/templates/systemd/awx.service.j2"

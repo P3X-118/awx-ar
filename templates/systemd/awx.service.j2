@@ -19,7 +19,6 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --rm \
       --name={{ awx_identifier }} \
       --log-driver=none \
-      --user={{ awx_uid }}:{{ awx_gid }} \
       --cap-drop=ALL \
       --security-opt=no-new-privileges:true \
       --network={{ awx_container_network }} \
@@ -29,6 +28,8 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --env-file={{ awx_base_path }}/env \
       --volume={{ awx_projects_storage_path }}:/var/lib/awx/projects:rw \
       --volume={{ awx_data_path }}:/var/lib/awx:rw \
+      --volume={{ awx_base_path }}/tower:/etc/tower:rw \
+      --volume={{ awx_base_path }}/supervisor:/var/run/supervisor:rw \
       {% for volume in awx_container_additional_volumes %}
       --mount type={{ volume.type | default('bind' if '/' in volume.src else 'volume') }},src={{ volume.src }},dst={{ volume.dst }}{{ (',' + volume.options) if volume.options else '' }} \
       {% endfor %}
