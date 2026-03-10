@@ -15,11 +15,11 @@ awx_hostname: ""
 
 awx_path_prefix: /
 
-awx_container_image: "{{ awx_container_image_registry_prefix }}ghcr.io/ansible/awx:{{ awx_container_image_tag }}"
+awx_container_image: "{{ awx_container_image_registry_prefix }}legitservices/awx:{{ awx_container_image_tag }}"
 awx_container_image_tag: "{{ awx_version }}"
 awx_container_image_registry_prefix: "{{ awx_container_image_registry_prefix_upstream }}"
 awx_container_image_registry_prefix_upstream: "{{ awx_container_image_registry_prefix_upstream_default }}"
-awx_container_image_registry_prefix_upstream_default: ""
+awx_container_image_registry_prefix_upstream_default: docker.io/
 awx_container_image_force_pull: "{{ awx_container_image.endswith(':latest') }}"
 
 awx_container_network: "{{ awx_identifier }}"

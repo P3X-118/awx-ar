@@ -19,6 +19,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --rm \
       --name={{ awx_identifier }} \
       --log-driver=none \
+      --user={{ awx_uid }}:{{ awx_gid }} \
       --cap-drop=ALL \
       --security-opt=no-new-privileges:true \
       --network={{ awx_container_network }} \
@@ -36,8 +37,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       {% for arg in awx_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
-      {{ awx_container_image }} \
-      /usr/bin/launch_awx_web.sh
+      {{ awx_container_image }}
 
 {% for network in awx_container_additional_networks %}
 ExecStartPre={{ sysd_docker_host_command }} network connect {{ network }} {{ awx_identifier }}
