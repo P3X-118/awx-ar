@@ -1,0 +1,43 @@
+{% if awx_container_labels_traefik_enabled %}
+traefik.enable=true
+
+{% if awx_container_labels_traefik_docker_network %}
+traefik.docker.network={{ awx_container_labels_traefik_docker_network }}
+{% endif %}
+
+{% set middlewares = [] %}
+
+{% if awx_container_labels_traefik_additional_request_headers.keys() | length > 0 %}
+{% for name, value in awx_container_labels_traefik_additional_request_headers.items() %}
+traefik.http.middlewares.{{ awx_identifier }}-add-request-headers.headers.customrequestheaders.{{ name }}={{ value }}
+{% endfor %}
+{% set middlewares = middlewares + [awx_identifier + '-add-request-headers'] %}
+{% endif %}
+
+{% if awx_container_labels_traefik_additional_response_headers.keys() | length > 0 %}
+{% for name, value in awx_container_labels_traefik_additional_response_headers.items() %}
+traefik.http.middlewares.{{ awx_identifier }}-add-response-headers.headers.customresponseheaders.{{ name }}={{ value }}
+{% endfor %}
+{% set middlewares = middlewares + [awx_identifier + '-add-response-headers'] %}
+{% endif %}
+
+traefik.http.routers.{{ awx_identifier }}.rule={{ awx_container_labels_traefik_rule }}
+{% if awx_container_labels_traefik_priority | int > 0 %}
+traefik.http.routers.{{ awx_identifier }}.priority={{ awx_container_labels_traefik_priority }}
+{% endif %}
+traefik.http.routers.{{ awx_identifier }}.service={{ awx_identifier }}
+{% if middlewares | length > 0 %}
+traefik.http.routers.{{ awx_identifier }}.middlewares={{ middlewares | join(',') }}
+{% endif %}
+traefik.http.routers.{{ awx_identifier }}.entrypoints={{ awx_container_labels_traefik_entrypoints }}
+traefik.http.routers.{{ awx_identifier }}.tls={{ awx_container_labels_traefik_tls | to_json }}
+{% if awx_container_labels_traefik_tls %}
+traefik.http.routers.{{ awx_identifier }}.tls.certResolver={{ awx_container_labels_traefik_tls_certResolver }}
+{% endif %}
+
+traefik.http.services.{{ awx_identifier }}.loadbalancer.server.port={{ awx_container_http_port }}
+{% endif %}
+
+{% for label in awx_container_labels_additional_labels %}
+{{ label }}
+{% endfor %}

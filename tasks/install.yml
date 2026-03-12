@@ -119,24 +119,26 @@
     path: "{{ awx_base_path }}/tower"
     state: directory
     mode: "0750"
-    owner: "1000"
-    group: "1000"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
 
 - name: Ensure AWX supervisor directory exists
   ansible.builtin.file:
     path: "{{ awx_base_path }}/supervisor"
     state: directory
     mode: "0750"
-    owner: "1000"
-    group: "1000"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
 
 - name: Ensure AWX settings file is present
   ansible.builtin.copy:
     dest: "{{ awx_base_path }}/tower/settings.py"
     content: |
       # AWX Settings - configured via environment variables
-      # Database settings
       import os
+
+      ALLOWED_HOSTS = [os.environ.get("AWX_HOST", "*")]
+
       DATABASES = {
           'default': {
               'ENGINE': 'django.db.backends.postgresql',
@@ -147,9 +149,46 @@
               'PORT': os.environ.get('DATABASE_PORT', '5432'),
           }
       }
+
+      _redis_host = os.environ.get('REDIS_HOST', 'localhost')
+      _redis_port = os.environ.get('REDIS_PORT', '6379')
+      _redis_password = os.environ.get('REDIS_PASSWORD', '')
+      _redis_auth = f':{_redis_password}@' if _redis_password else ''
+
+      BROKER_URL = f'redis://{_redis_auth}{_redis_host}:{_redis_port}/0'
+      CACHES = {
+          'default': {
+              'BACKEND': 'awx.main.cache.AWXRedisCache',
+              'LOCATION': f'redis://{_redis_auth}{_redis_host}:{_redis_port}/1',
+          }
+      }
+      CHANNEL_LAYERS = {
+          'default': {
+              'BACKEND': 'channels_redis.core.RedisChannelLayer',
+              'CONFIG': {'hosts': [BROKER_URL], 'capacity': 10000, 'group_expiry': 157784760},
+          }
+      }
     mode: "0644"
-    owner: "1000"
-    group: "1000"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+
+- name: Ensure AWX nginx config is present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/nginx.conf.j2"
+    dest: "{{ awx_base_path }}/nginx.conf"
+    mode: "0644"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+  register: awx_nginx_result
+
+- name: Ensure AWX labels file is present
+  ansible.builtin.template:
+    src: "{{ role_path }}/templates/labels.j2"
+    dest: "{{ awx_base_path }}/labels"
+    mode: "0640"
+    owner: "{{ awx_uid }}"
+    group: "{{ awx_gid }}"
+  register: awx_labels_result
 
 - name: Ensure AWX systemd service is present
   ansible.builtin.template:
@@ -171,7 +210,51 @@
     awx_restart_necessary: >-
       {{
         awx_support_files_result.changed | default(false)
+        or awx_nginx_result.changed | default(false)
+        or awx_labels_result.changed | default(false)
         or awx_systemd_service_result.changed | default(false)
         or awx_receptor_systemd_service_result.changed | default(false)
         or awx_container_image_pull_result.changed | default(false)
       }}
+
+- name: Ensure AWX admin user exists
+  ansible.builtin.command:
+    cmd: >-
+      {{ sysd_docker_host_command }} run --rm
+      --user={{ awx_uid }}:{{ awx_gid }}
+      --env-file={{ awx_base_path }}/env
+      --network={{ awx_postgres_container_network | default(postgres_container_network) }}
+      --tmpfs /run:uid={{ awx_uid }},mode=0755
+      --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
+      {{ awx_container_image }}
+      awx-manage shell -c "
+from django.contrib.auth.models import User
+import os
+username = os.environ.get('AWX_ADMIN_USER', 'admin')
+password = os.environ.get('AWX_ADMIN_PASSWORD', '')
+if not User.objects.filter(username=username).exists():
+    User.objects.create_superuser(username, '', password)
+    print('created')
+else:
+    print('already exists')
+"
+  register: awx_admin_user_result
+  changed_when: "'created' in awx_admin_user_result.stdout"
+  failed_when: awx_admin_user_result.rc != 0
+  when: awx_enabled | bool
+
+- name: Ensure AWX preload data exists
+  ansible.builtin.command:
+    cmd: >-
+      {{ sysd_docker_host_command }} run --rm
+      --user={{ awx_uid }}:{{ awx_gid }}
+      --env-file={{ awx_base_path }}/env
+      --network={{ awx_postgres_container_network | default(postgres_container_network) }}
+      --tmpfs /run:uid={{ awx_uid }},mode=0755
+      --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
+      {{ awx_container_image }}
+      awx-manage create_preload_data
+  register: awx_create_preload_result
+  changed_when: "'changed: True' in awx_create_preload_result.stdout"
+  failed_when: awx_create_preload_result.rc != 0
+  when: awx_enabled | bool
