@@ -219,7 +219,7 @@
 
 - name: Ensure AWX admin user exists
   ansible.builtin.command:
-    cmd: >-
+    cmd: >
       {{ sysd_docker_host_command }} run --rm
       --user={{ awx_uid }}:{{ awx_gid }}
       --env-file={{ awx_base_path }}/env
@@ -227,19 +227,9 @@
       --tmpfs /run:uid={{ awx_uid }},mode=0755
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
       {{ awx_container_image }}
-      awx-manage shell -c "
-from django.contrib.auth.models import User
-import os
-username = os.environ.get('AWX_ADMIN_USER', 'admin')
-password = os.environ.get('AWX_ADMIN_PASSWORD', '')
-if not User.objects.filter(username=username).exists():
-    User.objects.create_superuser(username, '', password)
-    print('created')
-else:
-    print('already exists')
-"
+      awx-manage shell -c "from django.contrib.auth.models import User; import os; username = os.environ.get('AWX_ADMIN_USER', 'admin'); password = os.environ.get('AWX_ADMIN_PASSWORD', ''); User.objects.get_or_create(username=username, defaults={'is_superuser': True, 'is_staff': True})[0].set_password(password) or User.objects.get(username=username); print('done')"
   register: awx_admin_user_result
-  changed_when: "'created' in awx_admin_user_result.stdout"
+  changed_when: "'done' in awx_admin_user_result.stdout"
   failed_when: awx_admin_user_result.rc != 0
   when: awx_enabled | bool
 
