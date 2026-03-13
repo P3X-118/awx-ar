@@ -217,6 +217,23 @@
         or awx_container_image_pull_result.changed | default(false)
       }}
 
+- name: Migrate AWX database
+  ansible.builtin.command:
+    cmd: >
+      {{ sysd_docker_host_command }} run --rm
+      --user={{ awx_uid }}:{{ awx_gid }}
+      --env-file={{ awx_base_path }}/env
+      --network={{ awx_postgres_container_network | default(postgres_container_network) }}
+      --tmpfs /run:uid={{ awx_uid }},mode=0755
+      --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
+      --volume={{ awx_data_path }}:/var/lib/awx:rw
+      {{ awx_container_image }}
+      awx-manage migrate --no-input
+  register: awx_migrate_result
+  changed_when: "'OK' in awx_migrate_result.stdout or awx_migrate_result.rc == 0"
+  failed_when: awx_migrate_result.rc != 0 and 'Relation' not in awx_migrate_result.stderr
+  when: awx_enabled | bool
+
 - name: Ensure AWX admin user exists
   ansible.builtin.command:
     cmd: >
