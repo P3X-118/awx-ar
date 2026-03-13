@@ -221,10 +221,8 @@
   ansible.builtin.command:
     cmd: >
       {{ sysd_docker_host_command }} run --rm
-      --user={{ awx_uid }}:{{ awx_gid }}
       --env-file={{ awx_base_path }}/env
       --network={{ awx_postgres_container_network | default(postgres_container_network) }}
-      --tmpfs /run:uid={{ awx_uid }},mode=0755
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
       --volume={{ awx_data_path }}:/var/lib/awx:rw
       {{ awx_container_image }}
@@ -238,11 +236,10 @@
   ansible.builtin.command:
     cmd: >
       {{ sysd_docker_host_command }} run --rm
-      --user={{ awx_uid }}:{{ awx_gid }}
       --env-file={{ awx_base_path }}/env
       --network={{ awx_postgres_container_network | default(postgres_container_network) }}
-      --tmpfs /run:uid={{ awx_uid }},mode=0755
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
+      --volume={{ awx_data_path }}:/var/lib/awx:rw
       {{ awx_container_image }}
       /usr/bin/awx-manage shell -c "from django.contrib.auth.models import User; import os; username = os.environ.get('AWX_ADMIN_USER', 'admin'); password = os.environ.get('AWX_ADMIN_PASSWORD', ''); User.objects.get_or_create(username=username, defaults={'is_superuser': True, 'is_staff': True})[0].set_password(password) or User.objects.get(username=username); print('done')"
   register: awx_admin_user_result
@@ -254,11 +251,10 @@
   ansible.builtin.command:
     cmd: >-
       {{ sysd_docker_host_command }} run --rm
-      --user={{ awx_uid }}:{{ awx_gid }}
       --env-file={{ awx_base_path }}/env
       --network={{ awx_postgres_container_network | default(postgres_container_network) }}
-      --tmpfs /run:uid={{ awx_uid }},mode=0755
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
+      --volume={{ awx_data_path }}:/var/lib/awx:rw
       {{ awx_container_image }}
       /usr/bin/awx-manage create_preload_data
   register: awx_create_preload_result
