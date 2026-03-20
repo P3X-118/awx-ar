@@ -11,6 +11,7 @@
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
     - name: Install AWX Redis
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install_redis.yml"
+      when: awx_redis_enabled | bool
     - name: Install AWX
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
