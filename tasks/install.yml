@@ -224,9 +224,8 @@
       --env-file={{ awx_base_path }}/env
       --network={{ awx_postgres_container_network | default(postgres_container_network) }}
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
-      --volume={{ awx_data_path }}:/var/lib/awx:rw
       {{ awx_container_image }}
-      /usr/bin/awx-manage migrate --no-input
+      awx-manage migrate --no-input
   register: awx_migrate_result
   changed_when: "'OK' in awx_migrate_result.stdout or awx_migrate_result.rc == 0"
   failed_when: awx_migrate_result.rc != 0 and 'Relation' not in awx_migrate_result.stderr
@@ -239,9 +238,8 @@
       --env-file={{ awx_base_path }}/env
       --network={{ awx_postgres_container_network | default(postgres_container_network) }}
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
-      --volume={{ awx_data_path }}:/var/lib/awx:rw
       {{ awx_container_image }}
-      /usr/bin/awx-manage shell -c "from django.contrib.auth.models import User; import os; username = os.environ.get('AWX_ADMIN_USER', 'admin'); password = os.environ.get('AWX_ADMIN_PASSWORD', ''); User.objects.get_or_create(username=username, defaults={'is_superuser': True, 'is_staff': True})[0].set_password(password) or User.objects.get(username=username); print('done')"
+      awx-manage shell -c "from django.contrib.auth.models import User; import os; username = os.environ.get('AWX_ADMIN_USER', 'admin'); password = os.environ.get('AWX_ADMIN_PASSWORD', ''); User.objects.get_or_create(username=username, defaults={'is_superuser': True, 'is_staff': True})[0].set_password(password) or User.objects.get(username=username); print('done')"
   register: awx_admin_user_result
   changed_when: "'done' in awx_admin_user_result.stdout"
   failed_when: awx_admin_user_result.rc != 0
@@ -254,9 +252,8 @@
       --env-file={{ awx_base_path }}/env
       --network={{ awx_postgres_container_network | default(postgres_container_network) }}
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro
-      --volume={{ awx_data_path }}:/var/lib/awx:rw
       {{ awx_container_image }}
-      /usr/bin/awx-manage create_preload_data
+      awx-manage create_preload_data
   register: awx_create_preload_result
   changed_when: "'changed: True' in awx_create_preload_result.stdout"
   failed_when: awx_create_preload_result.rc != 0
