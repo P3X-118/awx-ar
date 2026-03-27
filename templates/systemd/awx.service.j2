@@ -31,6 +31,7 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --volume={{ awx_projects_storage_path }}:/var/lib/awx/projects:rw \
       --volume={{ awx_data_path }}:/var/lib/awx/.local/share/containers:rw \
       --tmpfs /run:uid={{ awx_uid }},mode=0755 \
+      --tmpfs /var/lib/nginx/tmp:uid={{ awx_uid }},mode=0755 \
       --volume={{ awx_base_path }}/nginx.conf:/etc/nginx/nginx.conf:ro \
       --volume={{ awx_base_path }}/tower/settings.py:/etc/tower/settings.py:ro \
       --volume={{ awx_base_path }}/supervisor:/var/run/supervisor:rw \
