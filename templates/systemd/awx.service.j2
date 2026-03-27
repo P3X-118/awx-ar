@@ -21,8 +21,12 @@ ExecStartPre={{ sysd_docker_host_command }} create \
       --log-driver=none \
       --user={{ awx_uid }}:{{ awx_gid }} \
       --label-file={{ awx_base_path }}/labels \
+      --cap-add=CHOWN \
+      --cap-add=DAC_OVERRIDE \
+      --cap-add=SETUID \
+      --cap-add=SETGID \
+      --cap-add=NET_BIND_SERVICE \
       --cap-drop=ALL \
-      --security-opt=no-new-privileges:true \
       --network={{ awx_container_network }} \
       {% if awx_container_http_host_bind_port %}
       -p {{ awx_container_http_host_bind_port }}:{{ awx_container_http_port }} \
