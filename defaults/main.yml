@@ -125,7 +125,7 @@ awx_receptor_container_image: "{{ awx_container_image }}"
 awx_receptor_container_network: "{{ awx_identifier }}-receptor"
 awx_receptor_service_path: "{{ sysd_docker_service_path }}"
 
-awx_redis_enabled: false
+awx_redis_enabled: true
 awx_redis_identifier: "{{ awx_identifier }}-redis"
 awx_redis_container_image: "{{ awx_container_image_registry_prefix }}redis:{{ awx_redis_version }}"
 awx_redis_version: "8.4.0"
