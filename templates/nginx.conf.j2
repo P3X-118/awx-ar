@@ -32,7 +32,7 @@ http {
     }
 
     server {
-        listen 80 default_server;
+        listen {{ awx_container_http_port }} default_server;
         server_name _;
         keepalive_timeout 65;
 
